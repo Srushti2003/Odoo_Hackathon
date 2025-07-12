@@ -54,6 +54,13 @@ const answerSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 
+const commentSchema = new mongoose.Schema({
+  content: { type: String, required: true },
+  author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  answer: { type: mongoose.Schema.Types.ObjectId, ref: 'Answer', required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
 const voteSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   question: { type: mongoose.Schema.Types.ObjectId, ref: 'Question' },
@@ -62,10 +69,21 @@ const voteSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const notificationSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  type: { type: String, enum: ['answer', 'comment', 'mention'], required: true },
+  message: { type: String, required: true },
+  link: { type: String },
+  read: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now }
+});
+
 const User = mongoose.model('User', userSchema);
 const Question = mongoose.model('Question', questionSchema);
 const Answer = mongoose.model('Answer', answerSchema);
+const Comment = mongoose.model('Comment', commentSchema);
 const Vote = mongoose.model('Vote', voteSchema);
+const Notification = mongoose.model('Notification', notificationSchema);
 
 // Middleware for JWT authentication
 const authenticateToken = (req, res, next) => {
@@ -266,6 +284,39 @@ app.post('/api/questions/:id/answers', authenticateToken, async (req, res) => {
     });
 
     await answer.save();
+
+    // Create notification for question author
+    const question = await Question.findById(req.params.id);
+    if (question && question.author.toString() !== req.user.userId.toString()) {
+      const questionAuthor = await User.findById(question.author);
+      const notification = new Notification({
+        user: question.author,
+        type: 'answer',
+        message: `${user.username} answered your question "${question.title}"`,
+        link: `/question/${req.params.id}`
+      });
+      await notification.save();
+    }
+
+    // Check for mentions (@username) in answer content
+    const mentionRegex = /@(\w+)/g;
+    const mentions = content.match(mentionRegex);
+    if (mentions) {
+      for (const mention of mentions) {
+        const username = mention.substring(1); // Remove @
+        const mentionedUser = await User.findOne({ username });
+        if (mentionedUser && mentionedUser._id.toString() !== req.user.userId.toString()) {
+          const notification = new Notification({
+            user: mentionedUser._id,
+            type: 'mention',
+            message: `${user.username} mentioned you in an answer`,
+            link: `/question/${req.params.id}`
+          });
+          await notification.save();
+        }
+      }
+    }
+
     res.status(201).json({ message: 'Answer created successfully', id: answer._id });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
@@ -356,6 +407,111 @@ app.post('/api/answers/:id/accept', authenticateToken, async (req, res) => {
     await answer.save();
 
     res.json({ message: 'Answer accepted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get notifications for logged-in user
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  try {
+    const notifications = await Notification.find({ user: req.user.userId })
+      .sort({ createdAt: -1 })
+      .limit(20);
+    const unreadCount = await Notification.countDocuments({ user: req.user.userId, read: false });
+    res.json({ notifications, unreadCount });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Mark notifications as read
+app.post('/api/notifications/mark-read', authenticateToken, async (req, res) => {
+  try {
+    await Notification.updateMany({ user: req.user.userId, read: false }, { read: true });
+    res.json({ message: 'Notifications marked as read' });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete a notification by ID for the logged-in user
+app.delete('/api/notifications/:id', authenticateToken, async (req, res) => {
+  try {
+    await Notification.deleteOne({ _id: req.params.id, user: req.user.userId });
+    res.json({ message: 'Notification deleted' });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Create comment on answer
+app.post('/api/answers/:id/comments', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (user.role === 'guest') {
+      return res.status(403).json({ error: 'Guests cannot create comments' });
+    }
+
+    const { content } = req.body;
+    const comment = new Comment({
+      content,
+      author: req.user.userId,
+      answer: req.params.id
+    });
+
+    await comment.save();
+
+    // Get the answer to notify its author
+    const answer = await Answer.findById(req.params.id);
+    if (answer && answer.author.toString() !== req.user.userId.toString()) {
+      const notification = new Notification({
+        user: answer.author,
+        type: 'comment',
+        message: `${user.username} commented on your answer`,
+        link: `/question/${answer.question}`
+      });
+      await notification.save();
+    }
+
+    // Check for mentions (@username)
+    const mentionRegex = /@(\w+)/g;
+    const mentions = content.match(mentionRegex);
+    if (mentions) {
+      for (const mention of mentions) {
+        const username = mention.substring(1); // Remove @
+        const mentionedUser = await User.findOne({ username });
+        if (mentionedUser && mentionedUser._id.toString() !== req.user.userId.toString()) {
+          const notification = new Notification({
+            user: mentionedUser._id,
+            type: 'mention',
+            message: `${user.username} mentioned you in a comment`,
+            link: `/question/${answer.question}`
+          });
+          await notification.save();
+        }
+      }
+    }
+
+    res.status(201).json({ message: 'Comment created successfully', id: comment._id });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get comments for an answer
+app.get('/api/answers/:id/comments', async (req, res) => {
+  try {
+    const comments = await Comment.find({ answer: req.params.id })
+      .populate('author', 'username')
+      .sort({ createdAt: 1 });
+    
+    res.json(comments.map(comment => ({
+      id: comment._id,
+      content: comment.content,
+      author: comment.author.username,
+      createdAt: comment.createdAt
+    })));
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
   }
