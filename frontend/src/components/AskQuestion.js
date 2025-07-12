@@ -11,6 +11,25 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TextAlign from '@tiptap/extension-text-align';
+import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
+import Emoji from '@tiptap/extension-emoji';
+import { IconButton, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, TextField as MuiTextField } from '@mui/material';
+import FormatBoldIcon from '@mui/icons-material/FormatBold';
+import FormatItalicIcon from '@mui/icons-material/FormatItalic';
+import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
+import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
+import FormatAlignLeftIcon from '@mui/icons-material/FormatAlignLeft';
+import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
+import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
+import InsertLinkIcon from '@mui/icons-material/InsertLink';
+import ImageIcon from '@mui/icons-material/Image';
+import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 
 const AskQuestion = () => {
   const [formData, setFormData] = useState({
@@ -21,6 +40,24 @@ const AskQuestion = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Link.configure({ openOnClick: false }),
+      Image,
+      Emoji
+    ],
+    content: formData.content,
+    onUpdate: ({ editor }) => {
+      setFormData((prev) => ({ ...prev, content: editor.getHTML() }));
+    },
+  });
 
   const handleChange = (e) => {
     setFormData({
@@ -33,7 +70,7 @@ const AskQuestion = () => {
     e.preventDefault();
     setError('');
 
-    if (!formData.title.trim() || !formData.content.trim()) {
+    if (!formData.title.trim() || !editor || editor.isEmpty) {
       setError('Title and content are required');
       return;
     }
@@ -89,19 +126,65 @@ const AskQuestion = () => {
             helperText="Be specific and imagine you're asking another person"
             autoFocus
           />
-          
-          <TextField
-            fullWidth
-            label="Question Details"
-            name="content"
-            multiline
-            rows={6}
-            value={formData.content}
-            onChange={handleChange}
-            margin="normal"
-            required
-            helperText="Include all the information someone would need to answer your question"
-          />
+
+          <Box sx={{ mt: 2, mb: 1 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              Question Details *
+            </Typography>
+            {/* Toolbar */}
+            {editor && (
+              <Box sx={{ display: 'flex', gap: 1, mb: 1, background: '#f5f5f5', borderRadius: 1, p: 1, flexWrap: 'wrap' }}>
+                <Tooltip title="Bold"><span><IconButton size="small" onClick={() => editor.chain().focus().toggleBold().run()} color={editor.isActive('bold') ? 'primary' : 'default'}><FormatBoldIcon /></IconButton></span></Tooltip>
+                <Tooltip title="Italic"><span><IconButton size="small" onClick={() => editor.chain().focus().toggleItalic().run()} color={editor.isActive('italic') ? 'primary' : 'default'}><FormatItalicIcon /></IconButton></span></Tooltip>
+                <Tooltip title="Bullet List"><span><IconButton size="small" onClick={() => editor.chain().focus().toggleBulletList().run()} color={editor.isActive('bulletList') ? 'primary' : 'default'}><FormatListBulletedIcon /></IconButton></span></Tooltip>
+                <Tooltip title="Numbered List"><span><IconButton size="small" onClick={() => editor.chain().focus().toggleOrderedList().run()} color={editor.isActive('orderedList') ? 'primary' : 'default'}><FormatListNumberedIcon /></IconButton></span></Tooltip>
+                <Tooltip title="Align Left"><span><IconButton size="small" onClick={() => editor.chain().focus().setTextAlign('left').run()} color={editor.isActive({ textAlign: 'left' }) ? 'primary' : 'default'}><FormatAlignLeftIcon /></IconButton></span></Tooltip>
+                <Tooltip title="Align Center"><span><IconButton size="small" onClick={() => editor.chain().focus().setTextAlign('center').run()} color={editor.isActive({ textAlign: 'center' }) ? 'primary' : 'default'}><FormatAlignCenterIcon /></IconButton></span></Tooltip>
+                <Tooltip title="Align Right"><span><IconButton size="small" onClick={() => editor.chain().focus().setTextAlign('right').run()} color={editor.isActive({ textAlign: 'right' }) ? 'primary' : 'default'}><FormatAlignRightIcon /></IconButton></span></Tooltip>
+                <Tooltip title="Insert Link"><span><IconButton size="small" onClick={() => {
+                  const url = window.prompt('Enter the URL');
+                  if (url) editor.chain().focus().setLink({ href: url }).run();
+                }} color={editor.isActive('link') ? 'primary' : 'default'}><InsertLinkIcon /></IconButton></span></Tooltip>
+                <Tooltip title="Insert Image"><span><IconButton size="small" onClick={() => setImageDialogOpen(true)}><ImageIcon /></IconButton></span></Tooltip>
+                <Tooltip title="Insert Emoji"><span><IconButton size="small" onClick={() => {
+                  const emoji = window.prompt('Enter emoji (e.g. 😀)');
+                  if (emoji) editor.chain().focus().insertContent(emoji).run();
+                }}><EmojiEmotionsIcon /></IconButton></span></Tooltip>
+                <Tooltip title="Undo"><span><IconButton size="small" onClick={() => editor.chain().focus().undo().run()}><UndoIcon /></IconButton></span></Tooltip>
+                <Tooltip title="Redo"><span><IconButton size="small" onClick={() => editor.chain().focus().redo().run()}><RedoIcon /></IconButton></span></Tooltip>
+              </Box>
+            )}
+            {/* Image Dialog */}
+            <Dialog open={imageDialogOpen} onClose={() => setImageDialogOpen(false)}>
+              <DialogTitle>Insert Image</DialogTitle>
+              <DialogContent>
+                <MuiTextField
+                  autoFocus
+                  margin="dense"
+                  label="Image URL"
+                  type="url"
+                  fullWidth
+                  variant="standard"
+                  value={imageUrl}
+                  onChange={e => setImageUrl(e.target.value)}
+                />
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setImageDialogOpen(false)}>Cancel</Button>
+                <Button onClick={() => {
+                  if (imageUrl) editor.chain().focus().setImage({ src: imageUrl }).run();
+                  setImageDialogOpen(false);
+                  setImageUrl('');
+                }}>Insert</Button>
+              </DialogActions>
+            </Dialog>
+            <Box sx={{ border: '1px solid #ccc', borderRadius: 2, p: 2, background: '#fff' }}>
+              <EditorContent editor={editor} style={{ minHeight: 150 }} />
+            </Box>
+            <Typography variant="caption" color="text.secondary">
+              Include all the information someone would need to answer your question
+            </Typography>
+          </Box>
           
           <TextField
             fullWidth
