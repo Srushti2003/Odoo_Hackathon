@@ -7,6 +7,9 @@ A minimal question-and-answer platform that supports collaborative learning and 
 2. Srushti Dewalekar - srushtidewalekar@gmail.com
 3. Tanvi Halankar - tanvihalankar312@gmail.com
 
+## Video Link
+https://drive.google.com/drive/folders/1VW7rpn0hQx02dufftCZ4UkJYGjYJzVeS
+
 ## Features
 
 ### User Roles
