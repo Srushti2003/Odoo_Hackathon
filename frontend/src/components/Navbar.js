@@ -1,11 +1,13 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { Home } from '@mui/icons-material';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
@@ -24,6 +26,17 @@ const Navbar = () => {
         </Typography>
         
         <Box sx={{ display: 'flex', gap: 2 }}>
+          {location.pathname !== '/' && (
+            <Button 
+              color="inherit" 
+              component={RouterLink} 
+              to="/"
+              startIcon={<Home />}
+            >
+              Home
+            </Button>
+          )}
+          
           {user ? (
             <>
               {user.role !== 'guest' && (

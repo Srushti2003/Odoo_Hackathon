@@ -39,6 +39,7 @@ const questionSchema = new mongoose.Schema({
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   tags: [String],
   votes: { type: Number, default: 0 },
+  viewCount: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -174,6 +175,7 @@ app.get('/api/questions', async (req, res) => {
         author: question.author.username,
         tags: question.tags,
         votes: question.votes,
+        viewCount: question.viewCount,
         answerCount,
         createdAt: question.createdAt
       };
@@ -218,6 +220,9 @@ app.get('/api/questions/:id', async (req, res) => {
       return res.status(404).json({ error: 'Question not found' });
     }
 
+    // Increment view count
+    await Question.findByIdAndUpdate(req.params.id, { $inc: { viewCount: 1 } });
+
     const answers = await Answer.find({ question: req.params.id })
       .populate('author', 'username')
       .sort({ isAccepted: -1, votes: -1, createdAt: 1 });
@@ -229,6 +234,7 @@ app.get('/api/questions/:id', async (req, res) => {
       author: question.author.username,
       tags: question.tags,
       votes: question.votes,
+      viewCount: question.viewCount + 1, // Include updated view count
       createdAt: question.createdAt,
       answers: answers.map(answer => ({
         id: answer._id,

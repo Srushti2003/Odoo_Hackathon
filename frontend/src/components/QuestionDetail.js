@@ -9,8 +9,26 @@ import {
   Button,
   TextField,
   Divider,
-  Alert
+  Alert,
+  Avatar,
+  IconButton,
+  Tooltip,
+  Stack,
+  Paper,
+  Badge
 } from '@mui/material';
+import { 
+  ThumbUp, 
+  ThumbDown, 
+  Person, 
+  Schedule,
+  CheckCircle,
+  Delete,
+  Edit,
+  Send,
+  QuestionAnswer,
+  Visibility
+} from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
@@ -153,165 +171,305 @@ const QuestionDetail = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
-      {/* Question */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            {/* Voting Section */}
+      {/* Enhanced Question Card */}
+      <Card sx={{ 
+        mb: 4,
+        background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        border: '2px solid #e3f2fd',
+        borderRadius: 3,
+        overflow: 'hidden',
+        position: 'relative'
+      }}>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', gap: 3 }}>
+            {/* Enhanced Voting Section */}
             <Box sx={{ 
               display: 'flex', 
               flexDirection: 'column', 
               alignItems: 'center',
-              minWidth: 60
+              minWidth: 80,
+              background: 'linear-gradient(180deg, #f5f5f5 0%, #e0e0e0 100%)',
+              borderRadius: 2,
+              p: 2,
+              border: '1px solid #e0e0e0'
             }}>
-              <Button
-                size="small"
-                onClick={() => handleVote(question.id, null, 1)}
-                disabled={!user}
-              >
-                ▲
-              </Button>
-              <Typography variant="h6" sx={{ my: 1 }}>
+              <Tooltip title="Upvote">
+                <IconButton
+                  size="small"
+                  onClick={() => handleVote(question.id, null, 1)}
+                  disabled={!user}
+                  sx={{
+                    color: question.votes > 0 ? 'success.main' : 'text.secondary',
+                    '&:hover': { color: 'success.main' }
+                  }}
+                >
+                  <ThumbUp fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              
+              <Typography variant="h5" sx={{ 
+                my: 1,
+                fontWeight: 'bold',
+                color: question.votes > 0 ? 'success.main' : question.votes < 0 ? 'error.main' : 'text.primary'
+              }}>
                 {question.votes}
               </Typography>
-              <Button
-                size="small"
-                onClick={() => handleVote(question.id, null, -1)}
-                disabled={!user}
-              >
-                ▼
-              </Button>
+              
+              <Tooltip title="Downvote">
+                <IconButton
+                  size="small"
+                  onClick={() => handleVote(question.id, null, -1)}
+                  disabled={!user}
+                  sx={{
+                    color: question.votes < 0 ? 'error.main' : 'text.secondary',
+                    '&:hover': { color: 'error.main' }
+                  }}
+                >
+                  <ThumbDown fontSize="small" />
+                </IconButton>
+              </Tooltip>
             </Box>
 
-            {/* Question Content */}
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="h4" gutterBottom>
+            {/* Enhanced Question Content */}
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: '#1a1a1a' }}>
                 {question.title}
               </Typography>
               
-              <Typography variant="body1" sx={{ mb: 2 }}>
+              <Typography variant="body1" sx={{ 
+                mb: 3,
+                fontSize: '1.1rem',
+                lineHeight: 1.6,
+                color: '#333'
+              }}>
                 {question.content}
               </Typography>
 
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+              {/* Enhanced Tags */}
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3 }}>
                 {question.tags.map((tag, index) => (
                   <Chip 
                     key={index} 
                     label={tag} 
-                    size="small" 
-                    variant="outlined"
+                    size="medium" 
+                    variant="filled"
+                    sx={{
+                      background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
+                      color: '#1976d2',
+                      fontWeight: 500,
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #bbdefb 0%, #90caf9 100%)',
+                      }
+                    }}
                   />
                 ))}
               </Box>
 
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Asked by {question.author}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {new Date(question.createdAt).toLocaleDateString()}
-                </Typography>
-              </Box>
+              {/* Enhanced Metadata */}
+              <Box sx={{ 
+                display: 'flex', 
+                gap: 3, 
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                pt: 2,
+                borderTop: '1px solid #f0f0f0'
+              }}>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+                    <Person fontSize="small" />
+                  </Avatar>
+                  <Typography variant="body2" color="text.secondary">
+                    Asked by {question.author}
+                  </Typography>
+                </Stack>
+                
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Schedule fontSize="small" color="action" />
+                  <Typography variant="body2" color="text.secondary">
+                    {new Date(question.createdAt).toLocaleDateString()}
+                  </Typography>
+                </Stack>
 
-              {/* Delete button for question author or admin */}
-              {(user?.id === question.author || user?.role === 'admin') && (
-                <Button 
-                  variant="outlined" 
-                  color="error" 
-                  size="small"
-                  onClick={handleDeleteQuestion}
-                >
-                  Delete Question
-                </Button>
-              )}
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Visibility fontSize="small" color="action" />
+                  <Typography variant="body2" color="text.secondary">
+                    {question.viewCount || 0} views
+                  </Typography>
+                </Stack>
+
+                {/* Delete button for question author or admin */}
+                {(user?.id === question.author || user?.role === 'admin') && (
+                  <Button 
+                    variant="outlined" 
+                    color="error" 
+                    size="small"
+                    startIcon={<Delete />}
+                    onClick={handleDeleteQuestion}
+                    sx={{ ml: 'auto' }}
+                  >
+                    Delete Question
+                  </Button>
+                )}
+              </Box>
             </Box>
           </Box>
         </CardContent>
       </Card>
 
-      {/* Answers Section */}
-      <Typography variant="h5" gutterBottom>
+      {/* Enhanced Answers Section */}
+      <Typography variant="h5" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
         {question.answers.length} Answer{question.answers.length !== 1 ? 's' : ''}
       </Typography>
 
       {question.answers.map((answer) => (
-        <Card key={answer.id} sx={{ mb: 2, border: answer.isAccepted ? 2 : 1, borderColor: answer.isAccepted ? 'success.main' : 'divider' }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              {/* Voting Section */}
+        <Card 
+          key={answer.id} 
+          sx={{ 
+            mb: 3,
+            border: answer.isAccepted ? 3 : 1,
+            borderColor: answer.isAccepted ? 'success.main' : 'divider',
+            background: answer.isAccepted 
+              ? 'linear-gradient(135deg, #f8fff8 0%, #e8f5e8 100%)'
+              : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+            borderRadius: 3,
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          {answer.isAccepted && (
+            <Box sx={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              background: 'success.main',
+              color: 'white',
+              px: 2,
+              py: 0.5,
+              borderBottomLeftRadius: 8,
+              zIndex: 1
+            }}>
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <CheckCircle fontSize="small" />
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                  ACCEPTED
+                </Typography>
+              </Stack>
+            </Box>
+          )}
+          
+          <CardContent sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', gap: 3 }}>
+              {/* Enhanced Voting Section */}
               <Box sx={{ 
                 display: 'flex', 
                 flexDirection: 'column', 
                 alignItems: 'center',
-                minWidth: 60
+                minWidth: 80,
+                background: 'linear-gradient(180deg, #f5f5f5 0%, #e0e0e0 100%)',
+                borderRadius: 2,
+                p: 2,
+                border: '1px solid #e0e0e0'
               }}>
-                <Button
-                  size="small"
-                  onClick={() => handleVote(null, answer.id, 1)}
-                  disabled={!user}
-                >
-                  ▲
-                </Button>
-                <Typography variant="h6" sx={{ my: 1 }}>
+                <Tooltip title="Upvote">
+                  <IconButton
+                    size="small"
+                    onClick={() => handleVote(null, answer.id, 1)}
+                    disabled={!user}
+                    sx={{
+                      color: answer.votes > 0 ? 'success.main' : 'text.secondary',
+                      '&:hover': { color: 'success.main' }
+                    }}
+                  >
+                    <ThumbUp fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                
+                <Typography variant="h6" sx={{ 
+                  my: 1,
+                  fontWeight: 'bold',
+                  color: answer.votes > 0 ? 'success.main' : answer.votes < 0 ? 'error.main' : 'text.primary'
+                }}>
                   {answer.votes}
                 </Typography>
-                <Button
-                  size="small"
-                  onClick={() => handleVote(null, answer.id, -1)}
-                  disabled={!user}
-                >
-                  ▼
-                </Button>
+                
+                <Tooltip title="Downvote">
+                  <IconButton
+                    size="small"
+                    onClick={() => handleVote(null, answer.id, -1)}
+                    disabled={!user}
+                    sx={{
+                      color: answer.votes < 0 ? 'error.main' : 'text.secondary',
+                      '&:hover': { color: 'error.main' }
+                    }}
+                  >
+                    <ThumbDown fontSize="small" />
+                  </IconButton>
+                </Tooltip>
               </Box>
 
-              {/* Answer Content */}
-              <Box sx={{ flexGrow: 1 }}>
-                {answer.isAccepted && (
-                  <Chip 
-                    label="Accepted Answer" 
-                    color="success" 
-                    size="small" 
-                    sx={{ mb: 1 }}
-                  />
-                )}
-                
-                <Typography variant="body1" sx={{ mb: 2 }}>
+              {/* Enhanced Answer Content */}
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body1" sx={{ 
+                  mb: 3,
+                  fontSize: '1.05rem',
+                  lineHeight: 1.6,
+                  color: '#333'
+                }}>
                   {answer.content}
                 </Typography>
 
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Answered by {answer.author}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {new Date(answer.createdAt).toLocaleDateString()}
-                  </Typography>
-                </Box>
+                {/* Enhanced Metadata */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  gap: 3, 
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  pt: 2,
+                  borderTop: '1px solid #f0f0f0'
+                }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Avatar sx={{ width: 28, height: 28, bgcolor: 'secondary.main' }}>
+                      <Person fontSize="small" />
+                    </Avatar>
+                    <Typography variant="body2" color="text.secondary">
+                      Answered by {answer.author}
+                    </Typography>
+                  </Stack>
+                  
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Schedule fontSize="small" color="action" />
+                    <Typography variant="body2" color="text.secondary">
+                      {new Date(answer.createdAt).toLocaleDateString()}
+                    </Typography>
+                  </Stack>
 
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  {/* Accept answer button (only for question author) */}
-                  {user?.id === question.author && !answer.isAccepted && (
-                    <Button 
-                      variant="outlined" 
-                      color="success" 
-                      size="small"
-                      onClick={() => handleAcceptAnswer(answer.id)}
-                    >
-                      Accept Answer
-                    </Button>
-                  )}
+                  <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+                    {/* Accept answer button (only for question author) */}
+                    {user?.id === question.author && !answer.isAccepted && (
+                      <Button 
+                        variant="outlined" 
+                        color="success" 
+                        size="small"
+                        startIcon={<CheckCircle />}
+                        onClick={() => handleAcceptAnswer(answer.id)}
+                      >
+                        Accept Answer
+                      </Button>
+                    )}
 
-                  {/* Delete answer button (for answer author or admin) */}
-                  {(user?.id === answer.author || user?.role === 'admin') && (
-                    <Button 
-                      variant="outlined" 
-                      color="error" 
-                      size="small"
-                      onClick={() => handleDeleteAnswer(answer.id)}
-                    >
-                      Delete Answer
-                    </Button>
-                  )}
+                    {/* Delete answer button (for answer author or admin) */}
+                    {(user?.id === answer.author || user?.role === 'admin') && (
+                      <Button 
+                        variant="outlined" 
+                        color="error" 
+                        size="small"
+                        startIcon={<Delete />}
+                        onClick={() => handleDeleteAnswer(answer.id)}
+                      >
+                        Delete Answer
+                      </Button>
+                    )}
+                  </Box>
                 </Box>
               </Box>
             </Box>
@@ -319,11 +477,16 @@ const QuestionDetail = () => {
         </Card>
       ))}
 
-      {/* Answer Form */}
+      {/* Enhanced Answer Form */}
       {user && user.role !== 'guest' && (
-        <Card sx={{ mt: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
+        <Card sx={{ 
+          mt: 4,
+          background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+          border: '2px solid #e3f2fd',
+          borderRadius: 3
+        }}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
               Your Answer
             </Typography>
             
@@ -337,19 +500,28 @@ const QuestionDetail = () => {
               <TextField
                 fullWidth
                 multiline
-                rows={4}
+                rows={6}
                 label="Write your answer..."
                 value={answerContent}
                 onChange={(e) => setAnswerContent(e.target.value)}
                 margin="normal"
                 required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  },
+                }}
               />
               
               <Button
                 type="submit"
                 variant="contained"
                 disabled={submitting || !answerContent.trim()}
-                sx={{ mt: 2 }}
+                startIcon={<Send />}
+                sx={{ mt: 2, px: 3, py: 1 }}
               >
                 {submitting ? 'Posting Answer...' : 'Post Answer'}
               </Button>
@@ -359,11 +531,23 @@ const QuestionDetail = () => {
       )}
 
       {!user && (
-        <Card sx={{ mt: 3 }}>
-          <CardContent>
-            <Typography variant="body1" align="center">
-              Please <Button onClick={() => navigate('/login')}>login</Button> to post an answer.
+        <Card sx={{ 
+          mt: 4,
+          background: 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)',
+          border: '2px solid #ffb74d',
+          borderRadius: 3
+        }}>
+          <CardContent sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              Please login to post an answer.
             </Typography>
+            <Button 
+              variant="contained" 
+              onClick={() => navigate('/login')}
+              startIcon={<QuestionAnswer />}
+            >
+              Login to Answer
+            </Button>
           </CardContent>
         </Card>
       )}
