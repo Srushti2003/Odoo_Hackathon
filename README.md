@@ -2,6 +2,11 @@
 
 A minimal question-and-answer platform that supports collaborative learning and structured knowledge sharing. Built with the MERN stack (MongoDB, Express.js, React, Node.js).
 
+## Team Members
+1. Mahi Khoriya - mahikhoriya17@gmail.com
+2. Srushti Dewalekar - srushtidewalekar@gmail.com
+3. Tanvi Halankar - tanvihalankar312@gmail.com
+
 ## Features
 
 ### User Roles
